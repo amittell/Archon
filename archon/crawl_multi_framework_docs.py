@@ -8,7 +8,7 @@ Stores all documentation in the same Supabase table with framework metadata.
 import asyncio
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from supabase import Client, create_client
@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from archon.framework_config import FRAMEWORKS, get_framework
+from archon.framework_config import FRAMEWORKS, get_framework  # noqa: E402
 
 load_dotenv()
 

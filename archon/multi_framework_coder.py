@@ -8,22 +8,18 @@ from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
 from dotenv import load_dotenv
-import logfire
-import asyncio
 import os
 
-from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from openai import AsyncOpenAI
 from supabase import Client
-from typing import List, Optional
+from typing import List
 
 from framework_config import (
     get_framework,
     get_framework_system_prompt,
-    get_framework_templates,
-    detect_framework,
-    FRAMEWORKS
+    get_framework_templates
 )
 
 load_dotenv()

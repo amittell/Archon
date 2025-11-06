@@ -10,8 +10,6 @@ import asyncio
 import tempfile
 import os
 import re
-import subprocess
-from pathlib import Path
 from typing import Tuple, List, Dict, Optional
 import sys
 
@@ -334,8 +332,8 @@ finally:
         finally:
             try:
                 os.unlink(temp_file)
-            except:
-                pass
+            except Exception:
+                pass  # Ignore cleanup errors
 
     async def validate_all(self, code: str, skip_execution: bool = False) -> Tuple[bool, List[ValidationResult]]:
         """
@@ -394,7 +392,6 @@ def format_validation_feedback(results: List[Tuple[str, ValidationResult]]) -> s
     feedback_lines = ["## Code Validation Results\n"]
 
     failed_checks = [name for name, result in results if not result.is_valid]
-    passed_checks = [name for name, result in results if result.is_valid]
 
     if not failed_checks:
         feedback_lines.append("✅ **All validation checks passed!**\n")

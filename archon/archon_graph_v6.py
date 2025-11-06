@@ -9,10 +9,10 @@ Features:
 """
 
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
-from typing import TypedDict, Annotated, List, Any, Optional
+from typing import TypedDict, Annotated, List, Optional
 from langgraph.config import get_stream_writer
 from langgraph.types import interrupt
 from dotenv import load_dotenv
@@ -26,9 +26,9 @@ import re
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from archon.code_validator import CodeValidator, format_validation_feedback
-from archon.framework_config import get_framework, detect_framework, FRAMEWORKS
-from archon.multi_framework_coder import (
+from archon.code_validator import CodeValidator, format_validation_feedback  # noqa: E402
+from archon.framework_config import get_framework, detect_framework, FRAMEWORKS  # noqa: E402
+from archon.multi_framework_coder import (  # noqa: E402
     get_coder_for_framework,
     list_documentation_pages_helper,
     MultiFrameworkDeps
@@ -384,6 +384,6 @@ print("\n" + "="*60)
 print("Archon V6 Initialized")
 print("="*60)
 print(f"Supported Frameworks: {', '.join(FRAMEWORKS.keys())}")
-print(f"Validation: Enabled")
+print("Validation: Enabled")
 print(f"Checkpointing: SQLite ({checkpoint_db})")
 print("="*60 + "\n")

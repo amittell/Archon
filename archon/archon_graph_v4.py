@@ -6,10 +6,10 @@ Generated code is tested before being delivered to the user.
 """
 
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
-from typing import TypedDict, Annotated, List, Any, Optional
+from typing import TypedDict, Annotated, List, Optional
 from langgraph.config import get_stream_writer
 from langgraph.types import interrupt
 from dotenv import load_dotenv
@@ -28,8 +28,8 @@ from pydantic_ai.messages import (
 
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, list_documentation_pages_helper
-from archon.code_validator import CodeValidator, format_validation_feedback
+from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, list_documentation_pages_helper  # noqa: E402
+from archon.code_validator import CodeValidator, format_validation_feedback  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -65,6 +65,7 @@ supabase: Client = Client(
 
 # Initialize code validator
 code_validator = CodeValidator(timeout=5)
+
 
 # Define state schema with validation fields
 class AgentState(TypedDict):
