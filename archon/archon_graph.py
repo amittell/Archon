@@ -84,7 +84,7 @@ async def define_scope_with_reasoner(state: AgentState):
     """
 
     result = await reasoner.run(prompt)
-    scope = result.data
+    scope = result.output
 
     # Get the directory one level up from the current file
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -115,7 +115,7 @@ async def coder_agent(state: AgentState, writer):
     if is_ollama:
         writer = get_stream_writer()
         result = await pydantic_ai_coder.run(state['latest_user_message'], deps=deps, message_history= message_history)
-        writer(result.data)
+        writer(result.output)
     else:
         async with pydantic_ai_coder.run_stream(
             state['latest_user_message'],
@@ -151,7 +151,7 @@ async def route_user_message(state: AgentState):
     """
 
     result = await router_agent.run(prompt)
-    next_action = result.data
+    next_action = result.output
 
     if next_action == "finish_conversation":
         return "finish_conversation"
@@ -169,7 +169,7 @@ async def finish_conversation(state: AgentState, writer):
     if is_ollama:
         writer = get_stream_writer()
         result = await end_conversation_agent.run(state['latest_user_message'], message_history= message_history)
-        writer(result.data)   
+        writer(result.output)   
     else: 
         async with end_conversation_agent.run_stream(
             state['latest_user_message'],
