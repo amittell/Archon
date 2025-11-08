@@ -252,7 +252,9 @@ finally:
             except Exception:
                 pass
 
-    async def validate_all(self, code: str, skip_execution: bool = False) -> Tuple[bool, List[Tuple[str, ValidationResult]]]:
+    async def validate_all(
+        self, code: str, skip_execution: bool = False
+    ) -> Tuple[bool, List[Tuple[str, ValidationResult]]]:
         """Run all validation checks on code."""
         results = []
 
