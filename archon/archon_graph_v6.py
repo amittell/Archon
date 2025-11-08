@@ -8,12 +8,9 @@ Features:
 - Pydantic AI 1.11.1 compatibility
 """
 
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
 from typing import TypedDict, Annotated, List, Optional
-from langgraph.config import get_stream_writer
 from langgraph.types import interrupt
 from openai import AsyncOpenAI
 from supabase import Client, create_client
@@ -32,6 +29,11 @@ from archon.multi_framework_coder import (  # noqa: E402
     get_coder_for_framework,
     list_documentation_pages_helper,
     MultiFrameworkDeps
+)
+from archon.graph_utils import (  # noqa: E402
+    create_standard_agents,
+    load_message_history,
+    run_agent_with_streaming
 )
 
 
@@ -67,30 +69,8 @@ def build_workflow(config: ArchonConfig):
     # Initialize code validator
     code_validator = CodeValidator(timeout=config.validation_timeout)
 
-    # Initialize agents
-    reasoner = Agent(
-        OpenAIModel(config.reasoner_model, base_url=config.base_url, api_key=config.api_key),
-        system_prompt="""You are an expert at coding AI agents across multiple frameworks:
-- Pydantic AI
-- LangGraph
-- CrewAI
-- AutoGen
-
-Your job is to define comprehensive scope for AI agent projects.""",
-    )
-
-    primary_model = OpenAIModel(config.primary_model, base_url=config.base_url, api_key=config.api_key)
-    router_agent = Agent(
-        primary_model,
-        system_prompt='Your job is to route the user message either to the end of the conversation '
-                      'or to continue coding the AI agent.',
-    )
-
-    end_conversation_agent = Agent(
-        primary_model,
-        system_prompt='Your job is to end a conversation for creating an AI agent by giving instructions '
-                      'for how to execute the agent and then saying a nice goodbye to the user.',
-    )
+    # Initialize agents using shared helper
+    reasoner, primary_model, router_agent, end_conversation_agent = create_standard_agents(config)
 
     # Scope Definition Node
     async def define_scope_with_reasoner(state: AgentState):
@@ -172,11 +152,8 @@ Your job is to define comprehensive scope for AI agent projects.""",
                 framework=framework
             )
 
-            # Get message history
-            from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
-            message_history: list[ModelMessage] = []
-            for message_row in state['messages']:
-                message_history.extend(ModelMessagesTypeAdapter.validate_json(message_row))
+            # Get message history using shared helper
+            message_history = load_message_history(state['messages'])
 
             # Add validation feedback if present
             user_message = state['latest_user_message']
@@ -191,19 +168,14 @@ IMPORTANT: The previous code had validation issues. Please fix these problems:
 Please regenerate the code with these issues fixed.
 """
 
-            # Run the agent
-            if is_ollama:
-                writer = get_stream_writer()
-                result = await framework_coder.run(user_message, deps=deps, message_history=message_history)
-                writer(result.output)
-            else:
-                async with framework_coder.run_stream(
-                    user_message,
-                    deps=deps,
-                    message_history=message_history
-                ) as result:
-                    async for chunk in result.stream_text(delta=True):
-                        writer(chunk)
+            # Run the agent using shared streaming helper
+            result = await run_agent_with_streaming(
+                framework_coder,
+                user_message,
+                is_ollama,
+                deps=deps,
+                message_history=message_history
+            )
 
             return {"messages": [result.new_messages_json()], "validation_failed": False}
 
@@ -223,9 +195,7 @@ Please regenerate the code with these issues fixed.
                 return {"validation_failed": False}
 
             # Extract code from last message
-            from pydantic_ai.messages import ModelMessagesTypeAdapter
-            last_message_bytes = state['messages'][-1]
-            messages = ModelMessagesTypeAdapter.validate_json(last_message_bytes)
+            messages = load_message_history([state['messages'][-1]])
 
             code_blocks = []
             for msg in messages:
@@ -318,22 +288,16 @@ Please regenerate the code with these issues fixed.
     async def finish_conversation(state: AgentState, writer):
         """End conversation"""
         try:
-            from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
-            message_history: list[ModelMessage] = []
-            for message_row in state['messages']:
-                message_history.extend(ModelMessagesTypeAdapter.validate_json(message_row))
+            # Get message history using shared helper
+            message_history = load_message_history(state['messages'])
 
-            if is_ollama:
-                writer = get_stream_writer()
-                result = await end_conversation_agent.run(state['latest_user_message'], message_history=message_history)
-                writer(result.output)
-            else:
-                async with end_conversation_agent.run_stream(
-                    state['latest_user_message'],
-                    message_history=message_history
-                ) as result:
-                    async for chunk in result.stream_text(delta=True):
-                        writer(chunk)
+            # Run agent using shared streaming helper
+            result = await run_agent_with_streaming(
+                end_conversation_agent,
+                state['latest_user_message'],
+                is_ollama,
+                message_history=message_history
+            )
 
             return {"messages": [result.new_messages_json()]}
 

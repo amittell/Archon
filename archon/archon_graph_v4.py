@@ -5,12 +5,9 @@ This version includes automatic code validation with feedback loop.
 Generated code is tested before being delivered to the user.
 """
 
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite import SqliteSaver
 from typing import TypedDict, Annotated, List, Optional
-from langgraph.config import get_stream_writer
 from langgraph.types import interrupt
 from openai import AsyncOpenAI
 from supabase import Client, create_client
@@ -19,17 +16,16 @@ import os
 import sys
 import re
 
-# Import the message classes from Pydantic AI
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelMessagesTypeAdapter
-)
-
 # Add the parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from archon.config import ArchonConfig  # noqa: E402
 from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, list_documentation_pages_helper  # noqa: E402
 from archon.code_validator import CodeValidator, format_validation_feedback  # noqa: E402
+from archon.graph_utils import (  # noqa: E402
+    create_standard_agents,
+    load_message_history,
+    run_agent_with_streaming
+)
 
 
 # Define state schema with validation fields
@@ -64,25 +60,8 @@ def build_workflow_v4(config: ArchonConfig):
     # Initialize code validator
     code_validator = CodeValidator(timeout=config.validation_timeout)
 
-    # Initialize agents
-    reasoner = Agent(
-        OpenAIModel(config.reasoner_model, base_url=config.base_url, api_key=config.api_key),
-        system_prompt='You are an expert at coding AI agents and defining the scope for doing so. '
-                      'You support multiple frameworks including Pydantic AI, LangGraph, CrewAI, and AutoGen.',
-    )
-
-    primary_model = OpenAIModel(config.primary_model, base_url=config.base_url, api_key=config.api_key)
-    router_agent = Agent(
-        primary_model,
-        system_prompt='Your job is to route the user message either to the end of the conversation '
-                      'or to continue coding the AI agent.',
-    )
-
-    end_conversation_agent = Agent(
-        primary_model,
-        system_prompt='Your job is to end a conversation for creating an AI agent by giving instructions '
-                      'for how to execute the agent and then saying a nice goodbye to the user.',
-    )
+    # Initialize agents using shared helper
+    reasoner, primary_model, router_agent, end_conversation_agent = create_standard_agents(config)
 
     # Scope Definition Node with Reasoner LLM
     async def define_scope_with_reasoner(state: AgentState):
@@ -155,10 +134,8 @@ def build_workflow_v4(config: ArchonConfig):
                 reasoner_output=state['scope']
             )
 
-            # Get the message history into the format for Pydantic AI
-            message_history: list[ModelMessage] = []
-            for message_row in state['messages']:
-                message_history.extend(ModelMessagesTypeAdapter.validate_json(message_row))
+            # Get message history using shared helper
+            message_history = load_message_history(state['messages'])
 
             # If validation failed, add feedback to the message
             user_message = state['latest_user_message']
@@ -173,20 +150,14 @@ IMPORTANT: The previous code had validation issues. Please fix these problems:
 Please regenerate the code with these issues fixed.
 """
 
-            # Run the agent in a stream
-            if is_ollama:
-                writer = get_stream_writer()
-                result = await pydantic_ai_coder.run(user_message, deps=deps, message_history=message_history)
-                writer(result.output)
-            else:
-                async with pydantic_ai_coder.run_stream(
-                    user_message,
-                    deps=deps,
-                    message_history=message_history
-                ) as result:
-                    # Stream partial text as it arrives
-                    async for chunk in result.stream_text(delta=True):
-                        writer(chunk)
+            # Run the agent using shared streaming helper
+            result = await run_agent_with_streaming(
+                pydantic_ai_coder,
+                user_message,
+                is_ollama,
+                deps=deps,
+                message_history=message_history
+            )
 
             return {"messages": [result.new_messages_json()], "validation_failed": False}
 
@@ -204,8 +175,7 @@ Please regenerate the code with these issues fixed.
                 return {"validation_failed": False}
 
             # Extract code blocks from the last message
-            last_message_bytes = state['messages'][-1]
-            messages = ModelMessagesTypeAdapter.validate_json(last_message_bytes)
+            messages = load_message_history([state['messages'][-1]])
 
             code_blocks = []
             for msg in messages:
@@ -318,24 +288,16 @@ Please regenerate the code with these issues fixed.
     async def finish_conversation(state: AgentState, writer):
         """End conversation with execution instructions"""
         try:
-            # Get the message history into the format for Pydantic AI
-            message_history: list[ModelMessage] = []
-            for message_row in state['messages']:
-                message_history.extend(ModelMessagesTypeAdapter.validate_json(message_row))
+            # Get message history using shared helper
+            message_history = load_message_history(state['messages'])
 
-            # Run the agent in a stream
-            if is_ollama:
-                writer = get_stream_writer()
-                result = await end_conversation_agent.run(state['latest_user_message'], message_history=message_history)
-                writer(result.output)
-            else:
-                async with end_conversation_agent.run_stream(
-                    state['latest_user_message'],
-                    message_history=message_history
-                ) as result:
-                    # Stream partial text as it arrives
-                    async for chunk in result.stream_text(delta=True):
-                        writer(chunk)
+            # Run agent using shared streaming helper
+            result = await run_agent_with_streaming(
+                end_conversation_agent,
+                state['latest_user_message'],
+                is_ollama,
+                message_history=message_history
+            )
 
             return {"messages": [result.new_messages_json()]}
 
