@@ -1,5 +1,7 @@
 """Constants for Archon V4/V6."""
 
+import re
+
 # Embedding
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIM = 1536
@@ -19,7 +21,7 @@ COMMON_IMPORTS = frozenset({
     'os', 'sys', 'json', 're', 'pathlib', 'dotenv'
 })
 
-# Dangerous code patterns
+# Dangerous code patterns (pattern, warning message)
 DANGEROUS_PATTERNS = [
     (r'os\.system\s*\(', 'os.system() usage detected - potential security risk'),
     (r'eval\s*\(', 'eval() usage detected - code injection risk'),
@@ -27,4 +29,10 @@ DANGEROUS_PATTERNS = [
     (r'__import__\s*\(', 'Dynamic import with __import__() - review needed'),
     (r'open\s*\([^)]*["\']w["\']', 'File write operations detected - review needed'),
     (r'subprocess\.(call|run|Popen)', 'Subprocess execution detected - review needed'),
+]
+
+# Compiled regex patterns for performance
+COMPILED_DANGEROUS_PATTERNS = [
+    (re.compile(pattern, re.IGNORECASE), warning)
+    for pattern, warning in DANGEROUS_PATTERNS
 ]

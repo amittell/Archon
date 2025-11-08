@@ -21,6 +21,11 @@ from framework_config import (
     get_framework_system_prompt,
     get_framework_templates
 )
+from archon.constants import (
+    EMBEDDING_MODEL,
+    EMBEDDING_DIM,
+    DEFAULT_RAG_RESULTS
+)
 
 load_dotenv()
 
@@ -43,13 +48,13 @@ async def get_embedding(text: str, openai_client: AsyncOpenAI) -> List[float]:
     """Get embedding vector from OpenAI."""
     try:
         response = await openai_client.embeddings.create(
-            model="text-embedding-3-small",
+            model=EMBEDDING_MODEL,
             input=text
         )
         return response.data[0].embedding
     except Exception as e:
         print(f"Error getting embedding: {e}")
-        return [0] * 1536
+        return [0] * EMBEDDING_DIM
 
 
 def create_multi_framework_coder(framework: str = 'pydantic_ai') -> Agent:
@@ -145,7 +150,7 @@ When you build an AI agent from scratch, split the agent into these files:
                 'match_site_pages',
                 {
                     'query_embedding': query_embedding,
-                    'match_count': 5,
+                    'match_count': DEFAULT_RAG_RESULTS,
                     'filter': {'source': f'{ctx.deps.framework}_docs'}
                 }
             ).execute()

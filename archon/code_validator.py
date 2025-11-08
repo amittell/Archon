@@ -2,16 +2,17 @@
 
 import ast
 import asyncio
+import bisect
 import tempfile
 import os
 import re
-from typing import Tuple, List, Dict, Optional
+from typing import Tuple, List, Dict, Optional, Set
 from dataclasses import dataclass, field
 import sys
 
 from archon.constants import (
     COMMON_IMPORTS,
-    DANGEROUS_PATTERNS,
+    COMPILED_DANGEROUS_PATTERNS,
     VALIDATION_ERROR_MARKER,
     STDERR_MAX_LENGTH,
     DEFAULT_VALIDATION_TIMEOUT
@@ -31,6 +32,7 @@ class CodeValidator:
 
     def __init__(self, timeout: int = DEFAULT_VALIDATION_TIMEOUT):
         self.timeout = timeout
+        self._checked_imports: Set[str] = set()  # Cache for import checking
 
     def _parse_or_skip(self, code: str) -> Optional[ast.AST]:
         """Parse code, return None if syntax invalid."""
@@ -67,9 +69,10 @@ class CodeValidator:
                 for alias in node.names:
                     module_name = alias.name.split('.')[0]
                     all_imports.append(module_name)
-                    if module_name not in COMMON_IMPORTS:
+                    if module_name not in COMMON_IMPORTS and module_name not in self._checked_imports:
                         try:
                             __import__(module_name)
+                            self._checked_imports.add(module_name)
                         except ImportError:
                             missing_imports.append(module_name)
 
@@ -77,9 +80,10 @@ class CodeValidator:
                 if node.module:
                     module_name = node.module.split('.')[0]
                     all_imports.append(module_name)
-                    if module_name not in COMMON_IMPORTS:
+                    if module_name not in COMMON_IMPORTS and module_name not in self._checked_imports:
                         try:
                             __import__(module_name)
+                            self._checked_imports.add(module_name)
                         except ImportError:
                             missing_imports.append(module_name)
 
@@ -101,11 +105,18 @@ class CodeValidator:
 
     async def check_for_dangerous_patterns(self, code: str) -> ValidationResult:
         """Check for potentially dangerous code patterns."""
+        # Pre-calculate line starts for O(n log n) line number lookup
+        line_starts = [0] + [m.end() for m in re.finditer(r'\n', code)]
+
         issues = []
-        for pattern, warning in DANGEROUS_PATTERNS:
-            for match in re.finditer(pattern, code, re.IGNORECASE):
-                line_num = code[:match.start()].count('\n') + 1
-                issues.append({'pattern': pattern, 'warning': warning, 'line': line_num})
+        for compiled_pattern, warning in COMPILED_DANGEROUS_PATTERNS:
+            for match in compiled_pattern.finditer(code):
+                line_num = bisect.bisect_right(line_starts, match.start())
+                issues.append({
+                    'pattern': compiled_pattern.pattern,
+                    'warning': warning,
+                    'line': line_num
+                })
 
         if issues:
             return ValidationResult(
