@@ -43,97 +43,97 @@
 
 ---
 
-## ⏳ PRIORITY 2: Performance Optimizations (Medium Impact, Medium Effort)
+## ✅ PRIORITY 2: Performance Optimizations (Medium Impact, Medium Effort) - COMPLETE
 
 ### code_validator.py Performance
 
-- [ ] **Task 2.1:** Fix O(n²) line number calculation in check_for_dangerous_patterns()
+- [x] **Task 2.1:** Fix O(n²) line number calculation in check_for_dangerous_patterns()
   - Replace `code[:match.start()].count('\n') + 1` with bisect approach
   - Pre-calculate line starts: `[0] + [m.end() for m in re.finditer(r'\n', code)]`
   - Use `bisect.bisect_right(line_starts, match.start())`
-- [ ] **Task 2.1v:** Verify line numbers are correct for all dangerous patterns
+- [x] **Task 2.1v:** Verify line numbers are correct for all dangerous patterns
   - Test with code containing patterns on lines 1, 50, 100
   - Assert line numbers match expected values
   - Benchmark performance improvement on large files (1000+ lines)
 
-- [ ] **Task 2.2:** Cache compiled regex patterns for dangerous pattern checking
+- [x] **Task 2.2:** Cache compiled regex patterns for dangerous pattern checking
   - Create COMPILED_DANGEROUS_PATTERNS in constants.py
   - Use `re.compile(pattern, re.IGNORECASE)` for each pattern
   - Update check_for_dangerous_patterns() to use compiled patterns
-- [ ] **Task 2.2v:** Verify regex caching improves performance
+- [x] **Task 2.2v:** Verify regex caching improves performance
   - Benchmark before/after on 100 validation runs
   - Verify all patterns still detected correctly
   - Assert no false positives/negatives
 
-- [ ] **Task 2.3:** Optimize import checking to avoid redundant __import__ calls
+- [x] **Task 2.3:** Optimize import checking to avoid redundant __import__ calls
   - Track already-checked imports in a set
   - Skip __import__ if module already verified
-- [ ] **Task 2.3v:** Verify import optimization works correctly
+- [x] **Task 2.3v:** Verify import optimization works correctly
   - Test with code importing same module multiple times
   - Verify performance improvement on import-heavy code
   - Assert all missing imports still detected
 
 ### multi_framework_coder.py Performance
 
-- [ ] **Task 2.4:** Cache embedding model in constants instead of hardcoded string
+- [x] **Task 2.4:** Cache embedding model in constants instead of hardcoded string
   - Already in constants.py as EMBEDDING_MODEL
   - Replace "text-embedding-3-small" with EMBEDDING_MODEL in get_embedding()
-- [ ] **Task 2.4v:** Verify embedding retrieval uses constant
+- [x] **Task 2.4v:** Verify embedding retrieval uses constant
   - Check get_embedding() references constants.EMBEDDING_MODEL
   - Test embedding retrieval works correctly
   - Verify error fallback uses EMBEDDING_DIM
 
-- [ ] **Task 2.5:** Use EMBEDDING_DIM constant instead of magic 1536
+- [x] **Task 2.5:** Use EMBEDDING_DIM constant instead of magic 1536
   - Replace `return [0] * 1536` with `return [0] * EMBEDDING_DIM`
-- [ ] **Task 2.5v:** Verify embedding dimension constant works
+- [x] **Task 2.5v:** Verify embedding dimension constant works
   - Test error fallback returns correct dimension
   - Verify against text-embedding-3-small spec (1536)
 
-- [ ] **Task 2.6:** Use DEFAULT_RAG_RESULTS constant instead of magic 5
+- [x] **Task 2.6:** Use DEFAULT_RAG_RESULTS constant instead of magic 5
   - Replace `'match_count': 5` with `'match_count': DEFAULT_RAG_RESULTS`
-- [ ] **Task 2.6v:** Verify RAG returns correct number of results
+- [x] **Task 2.6v:** Verify RAG returns correct number of results
   - Test retrieve_relevant_documentation() returns 5 chunks
   - Verify changing constant affects result count
 
 ---
 
-## ⏳ PRIORITY 3: Architectural Improvements (High Impact, High Effort)
+## ⏳ PRIORITY 3: Architectural Improvements (High Impact, High Effort) - IN PROGRESS
 
 ### Configuration Management (archon_graph_v6.py, archon_graph_v4.py)
 
-- [ ] **Task 3.1:** Create ArchonConfig dataclass in new archon/config.py
+- [x] **Task 3.1:** Create ArchonConfig dataclass in new archon/config.py
   - Define all configuration fields (base_url, api_key, models, etc.)
   - Add @classmethod from_env() to load from environment
   - Add validation for required fields
-- [ ] **Task 3.1v:** Verify ArchonConfig loads correctly from .env
+- [x] **Task 3.1v:** Verify ArchonConfig loads correctly from .env
   - Test from_env() loads all variables
   - Test validation fails for missing required fields
   - Test default values work correctly
 
-- [ ] **Task 3.2:** Refactor archon_graph_v6.py to use ArchonConfig
+- [x] **Task 3.2:** Refactor archon_graph_v6.py to use ArchonConfig
   - Remove module-level load_dotenv() and client initialization
   - Create build_workflow(config: ArchonConfig) factory function
   - Move all setup inside factory function
   - Keep backwards-compatible agentic_flow = build_workflow(ArchonConfig.from_env())
-- [ ] **Task 3.2v:** Verify v6 workflow builds correctly with config
+- [x] **Task 3.2v:** Verify v6 workflow builds correctly with config
   - Test build_workflow() with custom config
   - Test backwards-compatible agentic_flow still works
   - Verify no side effects on import
 
-- [ ] **Task 3.3:** Refactor archon_graph_v4.py to use ArchonConfig
+- [x] **Task 3.3:** Refactor archon_graph_v4.py to use ArchonConfig
   - Remove module-level initialization
   - Create build_workflow_v4(config: ArchonConfig) factory
   - Keep backwards compatibility
-- [ ] **Task 3.3v:** Verify v4 workflow builds correctly with config
+- [x] **Task 3.3v:** Verify v4 workflow builds correctly with config
   - Test build_workflow_v4() with custom config
   - Test backwards-compatible agentic_flow_v4 works
   - Verify no import-time side effects
 
-- [ ] **Task 3.4:** Refactor multi_framework_coder.py module-level initialization
+- [x] **Task 3.4:** Refactor multi_framework_coder.py module-level initialization
   - Remove global `model = OpenAIModel(...)` at module level
   - Accept model as parameter in create_multi_framework_coder()
   - Update callers to pass model
-- [ ] **Task 3.4v:** Verify multi_framework_coder accepts model parameter
+- [x] **Task 3.4v:** Verify multi_framework_coder accepts model parameter
   - Test create_multi_framework_coder() with custom model
   - Verify no module-level side effects
   - Test all 4 frameworks work with new approach
@@ -227,40 +227,40 @@
 
 ### Helper Method Extraction
 
-- [ ] **Task 3.17:** Extract message history loading helper in archon_graph_v6.py
+- [x] **Task 3.17:** Extract message history loading helper in archon_graph_v6.py
   - Lines 174-177 duplicated in multiple places
-  - Create `_load_message_history(state: AgentState) -> list[ModelMessage]`
+  - Create `load_message_history(messages) -> list[ModelMessage]`
   - Replace duplicates with helper call
-- [ ] **Task 3.17v:** Verify message history helper works correctly
+- [x] **Task 3.17v:** Verify message history helper works correctly
   - Test in coder_agent node
   - Test in finish_conversation node
   - Verify message deserialization works
 
-- [ ] **Task 3.18:** Extract streaming helper pattern
+- [x] **Task 3.18:** Extract streaming helper pattern
   - Lines 193-204 pattern repeated
-  - Create `_run_agent_with_streaming()` helper
+  - Create `run_agent_with_streaming()` helper
   - Handle ollama vs streaming logic once
-- [ ] **Task 3.18v:** Verify streaming helper works
+- [x] **Task 3.18v:** Verify streaming helper works
   - Test with Ollama (is_ollama=True)
   - Test with OpenAI streaming
   - Verify output identical to before
 
 ### Code Duplication Between V4 and V6
 
-- [ ] **Task 3.19:** Extract common graph building logic
+- [x] **Task 3.19:** Extract common graph building logic
   - V4 and V6 share similar node functions
   - Create archon/graph_utils.py
   - Move shared node functions there
-- [ ] **Task 3.19v:** Verify both V4 and V6 use shared utils
+- [x] **Task 3.19v:** Verify both V4 and V6 use shared utils
   - Test V4 workflow still works
   - Test V6 workflow still works
   - Verify no regressions
 
-- [ ] **Task 3.20:** Extract common agent initialization
+- [x] **Task 3.20:** Extract common agent initialization
   - reasoner, router, end_conversation agents identical
   - Create `create_standard_agents(config: ArchonConfig)` helper
   - Return tuple of (reasoner, router, end_conversation)
-- [ ] **Task 3.20v:** Verify agent creation helper works
+- [x] **Task 3.20v:** Verify agent creation helper works
   - Test agents have correct system prompts
   - Test agents use correct models
   - Test in both V4 and V6
@@ -499,13 +499,18 @@
 
 ## 📋 PROGRESS TRACKING
 
-**Completed:** 30/66 tasks (45%)
-- ✅ Priority 1: 30/30 (100%)
-- ⏳ Priority 2: 0/12 (0%)
-- ⏳ Priority 3: 0/40 (0%)
+**Completed:** 50/66 tasks (76%)
+- ✅ Priority 1: 30/30 (100%) - COMPLETE
+- ✅ Priority 2: 12/12 (100%) - COMPLETE
+- ⏳ Priority 3: 8/40 (20%) - IN PROGRESS
+  - ✅ Config Management: 8/8 (100%)
+  - ✅ Helper Extraction: 8/8 (100%)
+  - ⏳ System Prompts: 0/12 (0%)
+  - ⏳ Framework Config: 0/10 (0%)
+  - ⏳ Crawler: 0/4 (0%)
 - ⏳ Testing: 0/12 (0%)
 - ⏳ Metrics: 0/6 (0%)
 - ⏳ Documentation: 0/8 (0%)
 - ⏳ Final: 0/10 (0%)
 
-**Next Up:** Task 2.1 - Fix O(n²) line number calculation
+**Next Up:** Tasks 3.5-3.22 - System prompt & framework optimization, OR skip to final validation
