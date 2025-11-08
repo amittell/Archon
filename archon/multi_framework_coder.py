@@ -7,8 +7,6 @@ Generates AI agents for multiple frameworks: Pydantic AI, LangGraph, CrewAI, Aut
 from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
-import os
 
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
@@ -26,13 +24,6 @@ from archon.constants import (
     EMBEDDING_DIM,
     DEFAULT_RAG_RESULTS
 )
-
-load_dotenv()
-
-llm = os.getenv('PRIMARY_MODEL', 'gpt-4o-mini')
-base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')
-api_key = os.getenv('LLM_API_KEY', 'no-llm-api-key-provided')
-model = OpenAIModel(llm, base_url=base_url, api_key=api_key)
 
 
 @dataclass
@@ -57,11 +48,12 @@ async def get_embedding(text: str, openai_client: AsyncOpenAI) -> List[float]:
         return [0] * EMBEDDING_DIM
 
 
-def create_multi_framework_coder(framework: str = 'pydantic_ai') -> Agent:
+def create_multi_framework_coder(model: OpenAIModel, framework: str = 'pydantic_ai') -> Agent:
     """
     Create a framework-specific coder agent
 
     Args:
+        model: OpenAIModel instance to use for the agent
         framework: The target framework name
 
     Returns:
@@ -75,6 +67,12 @@ def create_multi_framework_coder(framework: str = 'pydantic_ai') -> Agent:
     # Get framework-specific system prompt
     base_system_prompt = get_framework_system_prompt(framework)
 
+    # Build file structure list
+    file_structure_lines = '\n'.join(
+        f"- `{filename}`: {desc}"
+        for filename, desc in framework_info.file_structure.items()
+    )
+
     system_prompt = f"""
 ~~ CONTEXT: ~~
 
@@ -87,25 +85,27 @@ You have access to all the documentation for {framework_info.display_name}.
 
 Your only job is to help the user create an AI agent with {framework_info.display_name}.
 The user will describe the AI agent they want to build, or if they don't, guide them towards doing so.
-You will take their requirements, and then search through the {framework_info.display_name} documentation with the tools provided
-to find all the necessary information to create the AI agent with correct code.
+You will take their requirements, and then search through the {framework_info.display_name} documentation
+with the tools provided to find all the necessary information to create the AI agent with correct code.
 
 It's important for you to search through multiple documentation pages to get all the information you need.
-Almost never stick to just one page - use RAG and the other documentation tools multiple times when you are creating
-an AI agent from scratch for the user.
+Almost never stick to just one page - use RAG and the other documentation tools multiple times
+when you are creating an AI agent from scratch for the user.
 
 ~~ STRUCTURE: ~~
 
 When you build an AI agent from scratch, split the agent into these files:
-{chr(10).join(f"- `{filename}`: {desc}" for filename, desc in framework_info.file_structure.items())}
+{file_structure_lines}
 
 ~~ INSTRUCTIONS: ~~
 
-- Don't ask the user before taking an action, just do it. Always make sure you look at the documentation with the provided tools before writing any code.
-- When you first look at the documentation, always start with RAG.
-  Then also always check the list of available documentation pages and retrieve the content of page(s) if it'll help.
+- Don't ask the user before taking an action, just do it. Always make sure you look at the documentation
+  with the provided tools before writing any code.
+- When you first look at the documentation, always start with RAG. Then also always check the list of
+  available documentation pages and retrieve the content of page(s) if it'll help.
 - Always let the user know when you didn't find the answer in the documentation or the right URL - be honest.
-- When starting a new AI agent build, always produce the full code for the AI agent - never tell the user to finish a tool/function.
+- When starting a new AI agent build, always produce the full code for the AI agent - never tell the user
+  to finish a tool/function.
 - When refining an existing AI agent build in a conversation, just share the code changes necessary.
 - Each time you respond to the user, ask them to let you know either if they need changes or the code looks good.
 - Always use framework-specific best practices and patterns from the documentation.
@@ -270,17 +270,18 @@ When you build an AI agent from scratch, split the agent into these files:
 
 
 # Helper function to create appropriate coder based on framework
-def get_coder_for_framework(framework: str) -> Agent:
+def get_coder_for_framework(model: OpenAIModel, framework: str) -> Agent:
     """
     Get a coder agent configured for a specific framework
 
     Args:
+        model: OpenAIModel instance to use for the agent
         framework: Framework name (pydantic_ai, langgraph, crewai, autogen)
 
     Returns:
         Configured Agent instance
     """
-    return create_multi_framework_coder(framework)
+    return create_multi_framework_coder(model, framework)
 
 
 # Helper to list available frameworks

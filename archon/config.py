@@ -1,7 +1,7 @@
 """Configuration management for Archon V4/V6."""
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 from dotenv import load_dotenv
 
