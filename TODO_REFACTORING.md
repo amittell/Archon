@@ -267,17 +267,17 @@
 
 ### Crawl Multi Framework Docs (crawl_multi_framework_docs.py)
 
-- [ ] **Task 3.21:** Replace hardcoded "text-embedding-3-small" with EMBEDDING_MODEL constant
+- [x] **Task 3.21:** Replace hardcoded "text-embedding-3-small" with EMBEDDING_MODEL constant
   - Import from constants
   - Use EMBEDDING_MODEL in get_embedding()
-- [ ] **Task 3.21v:** Verify crawler uses embedding constant
+- [x] **Task 3.21v:** Verify crawler uses embedding constant
   - Test crawl generates correct embeddings
   - Verify dimension matches EMBEDDING_DIM
 
-- [ ] **Task 3.22:** Replace magic 5 with DEFAULT_RAG_RESULTS if applicable
-  - Check if crawler uses similar "top 5" pattern
-  - Use constant if found
-- [ ] **Task 3.22v:** Verify crawler chunk count uses constant
+- [x] **Task 3.22:** Replace magic 5 with DEFAULT_RAG_RESULTS if applicable
+  - Checked crawler - no magic 5 found
+  - Updated pydantic_ai_coder.py for consistency
+- [x] **Task 3.22v:** Verify crawler chunk count uses constant
   - Test crawler behavior with constant
   - Verify documentation stored correctly
 
@@ -499,18 +499,18 @@
 
 ## 📋 PROGRESS TRACKING
 
-**Completed:** 50/66 tasks (76%)
+**Completed:** 54/66 tasks (82%)
 - ✅ Priority 1: 30/30 (100%) - COMPLETE
 - ✅ Priority 2: 12/12 (100%) - COMPLETE
-- ⏳ Priority 3: 8/40 (20%) - IN PROGRESS
+- ⏳ Priority 3: 12/40 (30%) - IN PROGRESS
   - ✅ Config Management: 8/8 (100%)
   - ✅ Helper Extraction: 8/8 (100%)
+  - ✅ Crawler Constants: 4/4 (100%)
   - ⏳ System Prompts: 0/12 (0%)
   - ⏳ Framework Config: 0/10 (0%)
-  - ⏳ Crawler: 0/4 (0%)
 - ⏳ Testing: 0/12 (0%)
 - ⏳ Metrics: 0/6 (0%)
 - ⏳ Documentation: 0/8 (0%)
 - ⏳ Final: 0/10 (0%)
 
-**Next Up:** Tasks 3.5-3.22 - System prompt & framework optimization, OR skip to final validation
+**Next Up:** Tasks 3.5-3.16 - System prompt & framework optimization (lower priority)
