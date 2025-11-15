@@ -19,6 +19,7 @@ import xml.etree.ElementTree as ET
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from archon.framework_config import FRAMEWORKS, get_framework  # noqa: E402
+from archon.constants import EMBEDDING_MODEL, EMBEDDING_DIM  # noqa: E402
 
 load_dotenv()
 
@@ -50,13 +51,13 @@ class MultiFrameworkCrawler:
         """Get embedding for text"""
         try:
             response = await self.openai_client.embeddings.create(
-                model="text-embedding-3-small",
+                model=EMBEDDING_MODEL,
                 input=text[:8000]  # Limit to avoid token limits
             )
             return response.data[0].embedding
         except Exception as e:
             print(f"Error getting embedding: {e}")
-            return [0] * 1536
+            return [0] * EMBEDDING_DIM
 
     async def fetch_url(self, url: str) -> str:
         """Fetch URL content"""

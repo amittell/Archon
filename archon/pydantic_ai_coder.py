@@ -12,6 +12,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from openai import AsyncOpenAI
 from supabase import Client
 from typing import List
+from archon.constants import EMBEDDING_MODEL, EMBEDDING_DIM, DEFAULT_RAG_RESULTS
 
 load_dotenv()
 
@@ -88,13 +89,13 @@ async def get_embedding(text: str, openai_client: AsyncOpenAI) -> List[float]:
     """Get embedding vector from OpenAI."""
     try:
         response = await openai_client.embeddings.create(
-            model="text-embedding-3-small",
+            model=EMBEDDING_MODEL,
             input=text
         )
         return response.data[0].embedding
     except Exception as e:
         print(f"Error getting embedding: {e}")
-        return [0] * 1536  # Return zero vector on error
+        return [0] * EMBEDDING_DIM  # Return zero vector on error
 
 @pydantic_ai_coder.tool
 async def retrieve_relevant_documentation(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
@@ -117,7 +118,7 @@ async def retrieve_relevant_documentation(ctx: RunContext[PydanticAIDeps], user_
             'match_site_pages',
             {
                 'query_embedding': query_embedding,
-                'match_count': 5,
+                'match_count': DEFAULT_RAG_RESULTS,
                 'filter': {'source': 'pydantic_ai_docs'}
             }
         ).execute()
